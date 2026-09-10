@@ -30,3 +30,85 @@ assets/images/
 # OS
 .DS_Store
 Thumbs.db
+# =========================================================
+# ed3hub / Remotion
+# =========================================================
+
+# Node dependencies
+node_modules/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.pytest-tmp/
+.pytest_tmp/
+
+# Python / pip cache
+.pip-cache/
+pip-cache/
+
+# AI / HuggingFace / model caches
+cache/
+.cache/
+huggingface/
+models--*/
+
+# NPM cache
+.npm-cache/
+npm-cache/
+
+# Next.js
+.next/
+
+# Build directories
+dist/
+build/
+
+# Remotion temporary files
+.tmp/
+tmp/
+temp/
+
+# Rendered video/audio output
+output/
+renders/
+render/
+videos/
+
+*.mp4
+*.mov
+*.avi
+*.webm
+*.mkv
+*.wav
+
+# Temporary Chrome / Puppeteer files
+puppeteer_dev_chrome_profile-*/
+*.crdownload
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
