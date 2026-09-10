@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Course Video Generator</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">▶</span>
+      <div class="brand-text">
+        <h1>Course Video Generator</h1>
+        <p class="tagline">DOCX &rarr; narrated tutorial videos, rendered locally</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="badge badge-offline" title="Local-first: parsing, voice and rendering all happen on this machine">Local</span>
+      <span id="statusPill" class="pill pill-idle">Idle</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============================ Left: configuration ============================ -->
+    <section class="column config-column">
+      <div class="card">
+        <div class="card-head">
+          <span class="step" aria-hidden="true">1</span>
+          <h2>Document</h2>
+        </div>
+        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a .docx course file">
+          <input type="file" id="docInput" accept=".docx" hidden />
+          <div class="dropzone-icon" aria-hidden="true">⬆</div>
+          <p class="dropzone-title">Drop a .docx course file here</p>
+          <p class="dropzone-sub">or click to browse &mdash; Heading 1 chapters become videos</p>
+        </div>
+        <label class="field-label" for="docSelect">Or pick an existing document</label>
+        <select id="docSelect" class="select"></select>
+        <p id="docStatus" class="hint"></p>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="step" aria-hidden="true">2</span>
+          <h2>Voice</h2>
+        </div>
+        <div class="segmented" id="providerTabs" role="tablist" aria-label="Voice provider"></div>
+        <p id="providerNote" class="hint"></p>
+        <div id="voiceGrid" class="voice-grid" role="radiogroup" aria-label="Voice"></div>
+        <div class="preview-row">
+          <button id="previewBtn" class="btn btn-ghost" type="button">Preview voice</button>
+          <audio id="voicePreview" controls preload="none"></audio>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="step" aria-hidden="true">3</span>
+          <h2>Style</h2>
+        </div>
+        <div id="styleGrid" class="style-grid" role="radiogroup" aria-label="Video style"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="step" aria-hidden="true">4</span>
+          <h2>Render options</h2>
+        </div>
+        <div class="option-grid">
+          <label class="field-label" for="chapterSelect">Chapter</label>
+          <select id="chapterSelect" class="select">
+            <option value="">All chapters</option>
+            <option value="1">Chapter 1</option>
+            <option value="2">Chapter 2</option>
+            <option value="3">Chapter 3</option>
+          </select>
+          <label class="check"><input type="checkbox" id="forceTts" /> Force new narration (ignore cache)</label>
+          <label class="check"><input type="checkbox" id="forceRender" /> Force re-render (ignore existing MP4)</label>
+          <label class="check"><input type="checkbox" id="previewOnly" /> Preview only (skip video render)</label>
+        </div>
+        <button id="generateBtn" class="btn btn-primary" type="button">
+          <span class="btn-label">Start creating video</span>
+          <span class="btn-spinner" hidden></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============================ Right: job + output ============================ -->
+    <section class="column output-column">
+      <div class="card">
+        <div class="card-head">
+          <span class="step" aria-hidden="true">5</span>
+          <h2>Job &amp; log</h2>
+          <span id="jobMeta" class="job-meta"></span>
+        </div>
+        <pre id="jobLog" class="log" aria-live="polite">Waiting for a job&hellip;</pre>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="step" aria-hidden="true">6</span>
+          <h2>Videos</h2>
+          <button id="refreshVideos" class="btn btn-ghost btn-small" type="button">Refresh</button>
+        </div>
+        <div id="videosGrid" class="videos-grid">
+          <p class="empty">No videos yet &mdash; run a job to create one.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

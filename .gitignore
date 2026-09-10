@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Node / Remotion
+node_modules/
+.npm-cache/
+remotion/.remotion/
+remotion/public/media/
+*.tsbuildinfo
+
+# Runtime outputs
+generated/
+output/
+cache/
+logs/
+.pytest-tmp/
+.tmp/
+assets/audio/
+assets/images/
+*.wav
+*.mp3
+
+# Secrets
+.env
+
+# OS
+.DS_Store
+Thumbs.db

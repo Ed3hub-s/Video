@@ -1,0 +1,22 @@
+{
+  "name": "course-video-generator-remotion",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Tutorial",
+    "typecheck": "tsc --noEmit",
+    "test:render": "remotion render src/index.ts TestSuite out/test-suite.mp4 --frames=0-30 --codec=h264"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.228",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.228"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "typescript": "5.6.3"
+  }
+}
