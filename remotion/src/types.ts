@@ -1,6 +1,16 @@
-// TypeScript mirrors of the Python scene schemas. Scene JSON is data only.
+// TypeScript mirrors of the Python scene schemas.
+// Scene JSON is data only.
 
-export type Importance = 'low' | 'medium' | 'high';
+export type Importance =
+  | 'low'
+  | 'medium'
+  | 'high';
+
+export type TransitionType =
+  | 'fade'
+  | 'slide'
+  | 'wipe'
+  | 'zoom';
 
 export type ActionType =
   | 'reveal'
@@ -85,6 +95,12 @@ export interface ChapterManifest {
   height: number;
   scenes: Scene[];
   totalDurationSeconds: number;
-  theme?: Partial<import('./theme').Theme>;
+
+  theme?: Partial<
+    import('./theme').Theme
+  >;
+
   style?: string;
+
+  transition?: TransitionType;
 }

@@ -19,14 +19,37 @@ def resolve_path(path_value: str) -> str:
     return str(path.resolve())
 
 
-def _stage_media(source: str, dest_dir: Path, scene_id: str, ext: str) -> str | None:
+def _stage_media(
+    source: str,
+    dest_dir: Path,
+    scene_id: str,
+    ext: str,
+) -> str | None:
     source_path = Path(source)
+
     if not source_path.exists():
         return None
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / f"{scene_id}{ext}"
-    if not dest.exists() or dest.stat().st_size != source_path.stat().st_size:
-        shutil.copy2(source_path, dest)
+
+    dest_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    dest = (
+        dest_dir
+        / f"{scene_id}{ext}"
+    )
+
+    if (
+        not dest.exists()
+        or dest.stat().st_size
+        != source_path.stat().st_size
+    ):
+        shutil.copy2(
+            source_path,
+            dest,
+        )
+
     return dest.name
 
 
@@ -41,28 +64,59 @@ def write_render_manifest(
     """
 
     scenes = []
-    media_dir = config.paths.remotion / "public" / "media" / f"chapter-{plan.chapterNumber:02d}"
+
+    media_dir = (
+        config.paths.remotion
+        / "public"
+        / "media"
+        / f"chapter-{plan.chapterNumber:02d}"
+    )
+
     for scene in plan.scenes:
-        data = scene.model_dump(mode="json")
+        data = scene.model_dump(
+            mode="json"
+        )
+
         if data.get("audio"):
             staged = _stage_media(
-                resolve_path(data["audio"]["path"]),
+                resolve_path(
+                    data["audio"]["path"]
+                ),
                 media_dir,
                 scene.id,
-                Path(data["audio"]["path"]).suffix,
+                Path(
+                    data["audio"]["path"]
+                ).suffix,
             )
+
             if staged:
-                data["audio"]["path"] = f"media/chapter-{plan.chapterNumber:02d}/{staged}"
+                data["audio"]["path"] = (
+                    f"media/"
+                    f"chapter-{plan.chapterNumber:02d}/"
+                    f"{staged}"
+                )
+
         if data.get("image"):
             staged = _stage_media(
-                resolve_path(data["image"]),
+                resolve_path(
+                    data["image"]
+                ),
                 media_dir,
                 f"{scene.id}-image",
-                Path(data["image"]).suffix,
+                Path(
+                    data["image"]
+                ).suffix,
             )
+
             if staged:
-                data["image"] = f"media/chapter-{plan.chapterNumber:02d}/{staged}"
+                data["image"] = (
+                    f"media/"
+                    f"chapter-{plan.chapterNumber:02d}/"
+                    f"{staged}"
+                )
+
         scenes.append(data)
+
     manifest = {
         "courseTitle": plan.courseTitle,
         "chapterNumber": plan.chapterNumber,
@@ -71,14 +125,35 @@ def write_render_manifest(
         "width": plan.width,
         "height": plan.height,
         "scenes": scenes,
-        "totalDurationSeconds": plan.totalDurationSeconds,
+        "totalDurationSeconds": (
+            plan.totalDurationSeconds
+        ),
         "style": config.style,
+        "transition": config.transition,
         "theme": config.branding.__dict__,
     }
-    path = config.paths.manifests / f"chapter-{plan.chapterNumber:02d}-render.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as handle:
-        json.dump({"manifest": manifest}, handle, indent=2)
+
+    path = (
+        config.paths.manifests
+        / f"chapter-{plan.chapterNumber:02d}-render.json"
+    )
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    with open(
+        path,
+        "w",
+        encoding="utf-8",
+    ) as handle:
+        json.dump(
+            {"manifest": manifest},
+            handle,
+            indent=2,
+        )
+
     return path
 
 
@@ -90,19 +165,42 @@ def render_chapter(
 ) -> RenderManifest:
     """Render one chapter video. Returns a RenderManifest on success."""
 
-    remotion_dir = config.paths.remotion
-    if not (remotion_dir / "node_modules").exists():
+    remotion_dir = (
+        config.paths.remotion
+    )
+
+    if not (
+        remotion_dir
+        / "node_modules"
+    ).exists():
         raise RuntimeError(
-            "Remotion dependencies are not installed. Run `npm.cmd install` inside "
-            f"{remotion_dir} (or `make remotion-install`) first."
+            "Remotion dependencies are not installed. "
+            "Run `npm.cmd install` inside "
+            f"{remotion_dir} "
+            "(or `make remotion-install`) first."
         )
 
-    manifest_path = write_render_manifest(plan, config)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path = (
+        write_render_manifest(
+            plan,
+            config,
+        )
+    )
 
-    npx = shutil.which("npx.cmd") or shutil.which("npx")
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    npx = (
+        shutil.which("npx.cmd")
+        or shutil.which("npx")
+    )
+
     if npx is None:
-        raise RuntimeError("npx not found on PATH")
+        raise RuntimeError(
+            "npx not found on PATH"
+        )
 
     command = [
         npx,
@@ -116,18 +214,48 @@ def render_chapter(
         "--pixel-format=yuv420p",
         f"--fps={config.fps}",
     ]
-    ffmpeg_executable = os.environ.get("REMOTION_FFMPEG_EXECUTABLE")
+
+    ffmpeg_executable = (
+        os.environ.get(
+            "REMOTION_FFMPEG_EXECUTABLE"
+        )
+    )
+
     if ffmpeg_executable:
-        command.append(f"--ffmpeg-executable={ffmpeg_executable}")
-    browser_executable = os.environ.get("REMOTION_BROWSER_EXECUTABLE")
+        command.append(
+            f"--ffmpeg-executable="
+            f"{ffmpeg_executable}"
+        )
+
+    browser_executable = (
+        os.environ.get(
+            "REMOTION_BROWSER_EXECUTABLE"
+        )
+    )
+
     if browser_executable:
-        command.append(f"--browser-executable={browser_executable}")
-    concurrency = os.environ.get("REMOTION_CONCURRENCY")
+        command.append(
+            f"--browser-executable="
+            f"{browser_executable}"
+        )
+
+    concurrency = (
+        os.environ.get(
+            "REMOTION_CONCURRENCY"
+        )
+    )
+
     if concurrency:
-        command.append(f"--concurrency={concurrency}")
+        command.append(
+            f"--concurrency={concurrency}"
+        )
 
     if progress_cb:
-        progress_cb(f"Rendering chapter {plan.chapterNumber} with Remotion...")
+        progress_cb(
+            f"Rendering chapter "
+            f"{plan.chapterNumber} "
+            f"with Remotion..."
+        )
 
     result = subprocess.run(
         command,
@@ -136,17 +264,36 @@ def render_chapter(
         text=True,
         timeout=1800,
     )
+
     if result.returncode != 0:
-        tail = (result.stdout or "")[-3000:] + (result.stderr or "")[-3000:]
-        raise RuntimeError(f"Remotion render failed:\n{tail}")
+        tail = (
+            (result.stdout or "")[-3000:]
+            + (result.stderr or "")[-3000:]
+        )
+
+        raise RuntimeError(
+            "Remotion render failed:\n"
+            f"{tail}"
+        )
+
     if not output_path.exists():
-        raise RuntimeError("Remotion reported success but produced no output file")
+        raise RuntimeError(
+            "Remotion reported success "
+            "but produced no output file"
+        )
 
     return RenderManifest(
         chapterNumber=plan.chapterNumber,
         chapterTitle=plan.chapterTitle,
         sceneCount=len(plan.scenes),
-        durationSeconds=plan.totalDurationSeconds,
-        sceneFiles=[s.id for s in plan.scenes],
-        outputPath=str(output_path),
+        durationSeconds=(
+            plan.totalDurationSeconds
+        ),
+        sceneFiles=[
+            scene.id
+            for scene in plan.scenes
+        ],
+        outputPath=str(
+            output_path
+        ),
     )

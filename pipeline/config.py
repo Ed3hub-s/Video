@@ -32,7 +32,20 @@ def _env_str(name: str, default: str) -> str:
     return raw.strip()
 
 
-STYLES = ("studio", "dark", "playful", "minimal", "cinema")
+STYLES = (
+    "studio",
+    "dark",
+    "playful",
+    "minimal",
+    "cinema",
+)
+
+TRANSITIONS = (
+    "fade",
+    "slide",
+    "wipe",
+    "zoom",
+)
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -90,21 +103,91 @@ class Paths:
 class Config:
     """Single source of truth for pipeline and render settings."""
 
-    fps: int = field(default_factory=lambda: _env_int("FPS", 30))
-    width: int = field(default_factory=lambda: _env_int("VIDEO_WIDTH", 1920))
-    height: int = field(default_factory=lambda: _env_int("VIDEO_HEIGHT", 1080))
-    codec: str = field(default_factory=lambda: _env_str("CODEC", "h264"))
-    style: str = field(default_factory=lambda: _env_str("STYLE", "studio"))
-    ai_provider: str = field(default_factory=lambda: _env_str("AI_PROVIDER", "mock"))
-    tts_provider: str = field(default_factory=lambda: _env_str("TTS_PROVIDER", "kyutai"))
-    tts_voice: str = field(default_factory=lambda: _env_str("TTS_VOICE", "marius"))
-    tts_rate: int = field(default_factory=lambda: _env_int("TTS_RATE", 0))
+    fps: int = field(
+        default_factory=lambda: _env_int(
+            "FPS",
+            30,
+        )
+    )
+
+    width: int = field(
+        default_factory=lambda: _env_int(
+            "VIDEO_WIDTH",
+            1920,
+        )
+    )
+
+    height: int = field(
+        default_factory=lambda: _env_int(
+            "VIDEO_HEIGHT",
+            1080,
+        )
+    )
+
+    codec: str = field(
+        default_factory=lambda: _env_str(
+            "CODEC",
+            "h264",
+        )
+    )
+
+    style: str = field(
+        default_factory=lambda: _env_str(
+            "STYLE",
+            "studio",
+        )
+    )
+
+    transition: str = field(
+        default_factory=lambda: _env_str(
+            "TRANSITION",
+            "fade",
+        )
+    )
+
+    ai_provider: str = field(
+        default_factory=lambda: _env_str(
+            "AI_PROVIDER",
+            "mock",
+        )
+    )
+
+    # Kokoro is the primary/default narration engine for ed3hub.
+    tts_provider: str = field(
+        default_factory=lambda: _env_str(
+            "TTS_PROVIDER",
+            "kokoro",
+        )
+    )
+
+    tts_voice: str = field(
+        default_factory=lambda: _env_str(
+            "TTS_VOICE",
+            "af_heart",
+        )
+    )
+
+    tts_rate: int = field(
+        default_factory=lambda: _env_int(
+            "TTS_RATE",
+            0,
+        )
+    )
+
     scene_intro_padding: float = field(
-        default_factory=lambda: _env_float("SCENE_INTRO_PADDING", 0.3)
+        default_factory=lambda: _env_float(
+            "SCENE_INTRO_PADDING",
+            0.3,
+        )
     )
+
     scene_outro_padding: float = field(
-        default_factory=lambda: _env_float("SCENE_OUTRO_PADDING", 0.5)
+        default_factory=lambda: _env_float(
+            "SCENE_OUTRO_PADDING",
+            0.5,
+        )
     )
+
     max_narration_words: int = 120
     target_narration_words: tuple[int, int] = (40, 100)
     max_screen_words: int = 40
@@ -113,8 +196,14 @@ class Config:
     max_scene_seconds: float = 45.0
     max_teaching_actions_per_scene: int = 3
     max_high_emphasis_cues_per_concept: int = 2
-    branding: Brand = field(default_factory=Brand)
-    paths: Paths = field(default_factory=Paths)
+
+    branding: Brand = field(
+        default_factory=Brand
+    )
+
+    paths: Paths = field(
+        default_factory=Paths
+    )
 
     @property
     def frame_seconds(self) -> float:
