@@ -74,7 +74,8 @@ def write_render_manifest(
 
     for scene in plan.scenes:
         data = scene.model_dump(
-            mode="json"
+            mode="json",
+            by_alias=True,
         )
 
         if data.get("audio"):

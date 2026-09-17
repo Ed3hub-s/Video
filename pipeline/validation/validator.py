@@ -2,18 +2,39 @@
 
 from __future__ import annotations
 
-from pipeline.content.schemas import ChapterPlan, ValidationIssue, ValidationResult
+import re
+
+from pipeline.config import Config
+from pipeline.content.schemas import (
+    ChapterPlan,
+    ValidationIssue,
+    ValidationResult,
+)
 from pipeline.visual.action_validator import validate_actions
 
 from .rules import check_plan_rules
 
 
-def validate_chapter(plan: ChapterPlan, config) -> ValidationResult:
-    issues = check_plan_rules(plan, config)
+def validate_chapter(
+    plan: ChapterPlan,
+    config: Config,
+) -> ValidationResult:
+    """Validate a chapter plan and return structured issues."""
+
+    issues = check_plan_rules(
+        plan,
+        config,
+    )
+
     for scene in plan.scenes:
         issues.extend(
-            ("error" if sev == "error" else "warning", msg)
-            for sev, msg in validate_actions(
+            (
+                "error"
+                if severity == "error"
+                else "warning",
+                message,
+            )
+            for severity, message in validate_actions(
                 scene,
                 config.max_teaching_actions_per_scene,
                 config.max_high_emphasis_cues_per_concept,
@@ -21,15 +42,25 @@ def validate_chapter(plan: ChapterPlan, config) -> ValidationResult:
         )
 
     errors = [
-        ValidationIssue(level="error", code=slug(code), message=message)
-        for code, message in issues
-        if code == "error"
+        ValidationIssue(
+            level="error",
+            code=slug(message),
+            message=message,
+        )
+        for severity, message in issues
+        if severity == "error"
     ]
+
     warnings = [
-        ValidationIssue(level="warning", code=slug(code), message=message)
-        for code, message in issues
-        if code == "warning"
+        ValidationIssue(
+            level="warning",
+            code=slug(message),
+            message=message,
+        )
+        for severity, message in issues
+        if severity == "warning"
     ]
+
     return ValidationResult(
         chapterNumber=plan.chapterNumber,
         chapterTitle=plan.chapterTitle,
@@ -40,6 +71,16 @@ def validate_chapter(plan: ChapterPlan, config) -> ValidationResult:
 
 
 def slug(text: str) -> str:
-    import re
+    """Convert validation text into a readable machine-friendly code."""
 
-    return re.sub(r"[^a-z0-9-]", "-", text.lower())[:60] or "issue"
+    normalized = re.sub(
+        r"[^a-z0-9]+",
+        "-",
+        text.lower(),
+    )
+
+    return (
+        normalized
+        .strip("-")[:60]
+        or "issue"
+    )

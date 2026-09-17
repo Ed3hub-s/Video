@@ -1,11 +1,29 @@
 # Course Video Generator - developer commands
-# On Windows use: make PYTHON=<path-to-python> <target>
+#
+# Defaults work on macOS, Linux, and most Windows setups.
+# Commands can be overridden when needed, for example:
+#
+#   make PYTHON=py
+#   make NPM=npm.cmd NPX=npx.cmd remotion-install
 
 PYTHON ?= python
 PIP ?= $(PYTHON) -m pip
+NPM ?= npm
+NPX ?= npx
 
-.PHONY: setup fixture preview render test test-unit test-integration \
-	remotion-install remotion-preview clean
+.PHONY: \
+	setup \
+	fixture \
+	preview \
+	render \
+	test \
+	test-unit \
+	test-integration \
+	remotion-install \
+	remotion-typecheck \
+	remotion-smoke \
+	remotion-preview \
+	clean
 
 setup:
 	$(PIP) install -r requirements.txt
@@ -28,17 +46,17 @@ test-integration:
 	$(PYTHON) -m pytest tests -m integration -q
 
 remotion-install:
-	cd remotion && npm.cmd install --cache .npm-cache --no-audit --no-fund
+	cd remotion && $(NPM) ci --cache .npm-cache --no-audit --no-fund
 
 remotion-typecheck:
-	cd remotion && npx.cmd tsc --noEmit
+	cd remotion && $(NPX) tsc --noEmit
 
 remotion-smoke:
-	cd remotion && npx.cmd remotion render src/index.ts TestSuite ../output/test-suite.mp4 --frames=0-30 --codec=h264
+	cd remotion && $(NPX) remotion render src/index.ts TestSuite ../output/test-suite.mp4 --frames=0-30 --codec=h264
 
 remotion-preview:
-	cd remotion && npx.cmd remotion studio
+	cd remotion && $(NPX) remotion studio
 
 clean:
-	$(PYTHON) pipeline/main.py --help > /dev/null
-	@echo "Remove generated/, output/, cache/, logs/ manually to force a full rebuild."
+	$(PYTHON) -c "import shutil; from pathlib import Path; [shutil.rmtree(Path(p), ignore_errors=True) for p in ('generated', 'output', 'cache', 'logs', '.tmp')]"
+	@echo "Generated files, output, cache, logs, and temporary files removed."
