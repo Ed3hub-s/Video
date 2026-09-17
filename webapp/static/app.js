@@ -9,6 +9,7 @@ const state = {
   jobId: null,
   pollTimer: null,
   uploading: false,
+  previewingVoice: null,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -128,6 +129,7 @@ function selectProvider(providerId) {
 
   $("voicePreview").removeAttribute("src");
   $("voicePreview").load();
+  state.previewingVoice = null;
 }
 
 
@@ -167,7 +169,25 @@ function renderVoices() {
       <div class="voice-hint">
         ${voice.hint || ""}
       </div>
+      <button
+        class="voice-play"
+        type="button"
+        data-preview-voice="${voice.id}"
+        aria-label="Preview ${voice.label}"
+      >▶ Preview</button>
     `;
+
+    const playButton = card.querySelector(
+      ".voice-play"
+    );
+
+    playButton.addEventListener(
+      "click",
+      (event) => {
+        event.stopPropagation();
+        previewVoice(voice.id, playButton);
+      }
+    );
 
     card.addEventListener(
       "click",
@@ -498,14 +518,36 @@ async function uploadDocument(file) {
 
 /* ------------------------------ preview ------------------------------ */
 
-async function previewVoice() {
-  const button =
-    $("previewBtn");
+function resetPreviewButtons() {
+  document
+    .querySelectorAll(".voice-play")
+    .forEach((button) => {
+      button.disabled = false;
+      button.textContent = "▶ Preview";
+      button.classList.remove("playing");
+    });
+}
 
+
+async function previewVoice(voiceId, button) {
+  const audio = $("voicePreview");
+
+  if (
+    state.previewingVoice === voiceId &&
+    !audio.paused
+  ) {
+    audio.pause();
+    audio.currentTime = 0;
+    state.previewingVoice = null;
+    resetPreviewButtons();
+    return;
+  }
+
+  state.voice = voiceId;
+  setSelectedVoice();
+  resetPreviewButtons();
   button.disabled = true;
-
-  button.textContent =
-    "Generating…";
+  button.textContent = "Loading…";
 
 
   try {
@@ -524,35 +566,32 @@ async function previewVoice() {
               state.provider,
 
             voice:
-              state.voice,
+              voiceId,
           }),
         }
       );
 
 
-    const audio =
-      $("voicePreview");
-
-
     audio.src =
       result.url;
 
-
-    audio.play()
-      .catch(() => {});
+    await audio.play();
+    state.previewingVoice = voiceId;
+    resetPreviewButtons();
+    button.textContent = "■ Stop";
+    button.classList.add("playing");
 
 
   } catch (error) {
+
+    state.previewingVoice = null;
+    resetPreviewButtons();
 
     $("providerNote").textContent =
       `Preview failed: ${error.message}`;
 
   } finally {
-
     button.disabled = false;
-
-    button.textContent =
-      "Preview voice";
   }
 }
 
@@ -914,10 +953,13 @@ document.addEventListener(
 
     setupUpload();
 
-    $("previewBtn")
+    $("voicePreview")
       .addEventListener(
-        "click",
-        previewVoice
+        "ended",
+        () => {
+          state.previewingVoice = null;
+          resetPreviewButtons();
+        }
       );
 
 

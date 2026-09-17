@@ -242,11 +242,11 @@ def _resolve_input_document(
             ),
         )
 
-    if document.suffix.lower() != ".docx":
+    if document.suffix.lower() not in {".docx", ".pdf"}:
         raise HTTPException(
             status_code=400,
             detail=(
-                "Only .docx documents "
+                "Only .docx or .pdf documents "
                 "can be rendered"
             ),
         )
@@ -534,7 +534,9 @@ def api_documents() -> dict[str, Any]:
             continue
 
         for path in sorted(
-            directory.glob("*.docx")
+            item
+            for item in directory.iterdir()
+            if item.is_file() and item.suffix.lower() in {".docx", ".pdf"}
         ):
             relative = str(
                 path.relative_to(ROOT)
@@ -566,13 +568,11 @@ def api_documents() -> dict[str, Any]:
 async def api_upload(
     file: UploadFile = File(...),
 ) -> dict[str, Any]:
-    if not (
-        file.filename or ""
-    ).lower().endswith(".docx"):
+    if Path(file.filename or "").suffix.lower() not in {".docx", ".pdf"}:
         raise HTTPException(
             status_code=400,
             detail=(
-                "Only .docx files "
+                "Only .docx or .pdf files "
                 "are accepted"
             ),
         )
@@ -584,10 +584,7 @@ async def api_upload(
 
     destination = (
         UPLOAD_DIR
-        / (
-            f"{time.strftime('%Y%m%d-%H%M%S')}"
-            f"-{safe_name}"
-        )
+        / safe_name
     )
 
     temporary = (

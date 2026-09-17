@@ -20,7 +20,7 @@ class SourceBlockType(str, Enum):
 
 
 class SourceBlock(BaseModel):
-    """Neutral, order-preserving representation of one DOCX block."""
+    """Neutral, order-preserving representation of one document block."""
 
     type: SourceBlockType
     text: str = ""

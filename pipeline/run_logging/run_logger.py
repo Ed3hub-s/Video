@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -27,11 +28,21 @@ class RunLogger:
             "render_results": [],
             "output_paths": [],
             "failed_chapters": [],
+            "stage_timings_seconds": {},
         }
         self._log_path = None
 
     def progress(self, message: str) -> None:
         print(message, flush=True)
+
+    @staticmethod
+    def timer() -> float:
+        return time.perf_counter()
+
+    def add_stage_timing(self, stage: str, started: float) -> float:
+        elapsed = round(time.perf_counter() - started, 3)
+        self.record["stage_timings_seconds"][stage] = elapsed
+        return elapsed
 
     def set_input(self, path: str, digest: str) -> None:
         self.record["input_file"] = path

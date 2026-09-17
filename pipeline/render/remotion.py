@@ -6,10 +6,29 @@ import json
 import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 from pipeline.config import Config
 from pipeline.content.schemas import ChapterPlan, RenderManifest
+
+
+def _remotion_cli(remotion_dir: Path) -> list[str]:
+    """Prefer the installed project CLI and fall back to npx."""
+
+    bin_dir = remotion_dir / "node_modules" / ".bin"
+    candidates = (
+        bin_dir / "remotion.cmd",
+        bin_dir / "remotion",
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return [str(candidate)]
+
+    npx = shutil.which("npx.cmd") or shutil.which("npx")
+    if npx is None:
+        raise RuntimeError("Neither the local Remotion CLI nor npx was found")
+    return [npx, "remotion"]
 
 
 def resolve_path(path_value: str) -> str:
@@ -193,19 +212,7 @@ def render_chapter(
         exist_ok=True,
     )
 
-    npx = (
-        shutil.which("npx.cmd")
-        or shutil.which("npx")
-    )
-
-    if npx is None:
-        raise RuntimeError(
-            "npx not found on PATH"
-        )
-
-    command = [
-        npx,
-        "remotion",
+    command = _remotion_cli(remotion_dir) + [
         "render",
         "src/index.ts",
         "Tutorial",
@@ -258,6 +265,7 @@ def render_chapter(
             f"with Remotion..."
         )
 
+    render_started = time.perf_counter()
     result = subprocess.run(
         command,
         cwd=str(remotion_dir),
@@ -265,6 +273,12 @@ def render_chapter(
         text=True,
         timeout=1800,
     )
+    render_elapsed = time.perf_counter() - render_started
+
+    if progress_cb:
+        progress_cb(
+            f"  Remotion process completed in {render_elapsed:.2f}s"
+        )
 
     if result.returncode != 0:
         tail = (

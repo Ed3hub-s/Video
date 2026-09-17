@@ -2,6 +2,7 @@
 
 Usage:
     python pipeline/main.py input/course.docx
+    python pipeline/main.py input/course.pdf
     python pipeline/main.py input/course.docx --preview
     python pipeline/main.py input/course.docx --chapter 3
     python pipeline/main.py input/course.docx --tts-provider kokoro --voice af_heart
@@ -46,7 +47,7 @@ from pipeline.content.schemas import (
     Course,
     Scene,
 )
-from pipeline.docx_parser.reader import read_docx
+from pipeline.document_reader import read_document
 from pipeline.render.remotion import (
     render_chapter,
     write_render_manifest,
@@ -67,7 +68,7 @@ def parse_args(
     parser = argparse.ArgumentParser(
         prog="course-video-generator",
         description=(
-            "Convert a structured .docx course "
+            "Convert a .docx or .pdf course "
             "into narrated tutorial MP4s."
         ),
     )
@@ -76,7 +77,7 @@ def parse_args(
         "input",
         nargs="?",
         default="input/course.docx",
-        help="Path to the .docx course file",
+        help="Path to the .docx or .pdf course file",
     )
 
     parser.add_argument(
@@ -691,13 +692,15 @@ def run_pipeline(
     )
 
     logger.progress(
-        "[1/9] Reading DOCX"
+        "[1/9] Reading document"
     )
 
-    course = read_docx(
+    read_started = logger.timer()
+    course = read_document(
         input_path,
         config,
     )
+    logger.add_stage_timing("document_ingestion", read_started)
 
     logger.count_chapters(
         len(course.chapters)
@@ -775,6 +778,7 @@ def run_pipeline(
             "Rendering",
         ),
     ):
+        stage_started = logger.timer()
         logger.progress(
             f"[{step}/9] {label}"
         )
@@ -1097,6 +1101,14 @@ def run_pipeline(
                     failures.append(
                         chapter_number
                     )
+
+        elapsed = logger.add_stage_timing(
+            label.lower().replace(" ", "_"),
+            stage_started,
+        )
+        logger.progress(
+            f"  {label} completed in {elapsed:.2f}s"
+        )
 
     if args.preview:
         report = (

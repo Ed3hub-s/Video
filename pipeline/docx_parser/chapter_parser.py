@@ -14,7 +14,7 @@ class ChapterParser:
     def __init__(self, course_title: str, warnings: list[str] | None = None) -> None:
         self.course_title = course_title
         self.chapters: list[Chapter] = []
-        self.warnings = warnings or []
+        self.warnings = warnings if warnings is not None else []
         self._current_chapter: Chapter | None = None
         self._current_section: Section | None = None
         self._pending_list_kind = ListKind.NONE

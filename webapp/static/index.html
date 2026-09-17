@@ -29,10 +29,10 @@
           <span class="step" aria-hidden="true">1</span>
           <h2>Document</h2>
         </div>
-        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a .docx course file">
-          <input type="file" id="docInput" accept=".docx" hidden />
+        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a .docx or .pdf course file">
+          <input type="file" id="docInput" accept=".docx,.pdf" hidden />
           <div class="dropzone-icon" aria-hidden="true">⬆</div>
-          <p class="dropzone-title">Drop a .docx course file here</p>
+          <p class="dropzone-title">Drop a .docx or .pdf course file here</p>
           <p class="dropzone-sub">or click to browse &mdash; Heading 1 chapters become videos</p>
         </div>
         <label class="field-label" for="docSelect">Or pick an existing document</label>
@@ -49,8 +49,7 @@
         <p id="providerNote" class="hint"></p>
         <div id="voiceGrid" class="voice-grid" role="radiogroup" aria-label="Voice"></div>
         <div class="preview-row">
-          <button id="previewBtn" class="btn btn-ghost" type="button">Preview voice</button>
-          <audio id="voicePreview" controls preload="none"></audio>
+          <audio id="voicePreview" controls preload="none" aria-label="Voice preview"></audio>
         </div>
       </div>
 
