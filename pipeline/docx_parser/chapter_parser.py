@@ -8,6 +8,27 @@ from .block_parser import ListKind, is_list_paragraph
 from .image_extractor import slugify
 
 
+def _normalized_title(value: str) -> str:
+    return "".join(
+        character.lower()
+        for character in value
+        if character.isalnum()
+    )
+
+
+def _chapter_word_count(chapter: Chapter) -> int:
+    words = 0
+
+    for section in chapter.sections:
+        for block in section.blocks:
+            words += len(block.text.split())
+
+            for item in block.items:
+                words += len(item.split())
+
+    return words
+
+
 class ChapterParser:
     """Builds a Course while preserving exact document order."""
 
@@ -104,4 +125,71 @@ class ChapterParser:
         self._flush_pending_list()
         if self._current_chapter is None:
             self._ensure_chapter(self.course_title)
+
+        self._fold_leading_course_intro()
+
         return Course(title=self.course_title, chapters=self.chapters, warnings=self.warnings)
+
+    def _fold_leading_course_intro(self) -> None:
+        """Fold a short title-card chapter into the first real chapter.
+
+        Course documents commonly begin with a Heading 1 that repeats the
+        document title, followed by one short welcome paragraph. Treating that
+        title card as a standalone chapter produces a repetitive, nearly empty
+        video. Only fold it when the following chapter is clearly substantive.
+        """
+
+        if len(self.chapters) < 2:
+            return
+
+        leading = self.chapters[0]
+        following = self.chapters[1]
+
+        if _normalized_title(leading.title) != _normalized_title(self.course_title):
+            return
+
+        leading_words = _chapter_word_count(leading)
+        following_words = _chapter_word_count(following)
+
+        if not (0 < leading_words <= 60):
+            return
+
+        if following_words < max(80, leading_words * 2):
+            return
+
+        intro_blocks = [
+            block
+            for section in leading.sections
+            for block in section.blocks
+        ]
+
+        if following.sections:
+            following.sections[0].blocks = (
+                intro_blocks
+                + following.sections[0].blocks
+            )
+        else:
+            following.sections.append(
+                Section(
+                    title=following.title,
+                    blocks=intro_blocks,
+                )
+            )
+
+        self.chapters = self.chapters[1:]
+
+        for index, chapter in enumerate(self.chapters, start=1):
+            chapter.chapter_number = index
+            chapter.slug = f"{index:02d}-{slugify(chapter.title)}"
+
+        self._current_chapter = self.chapters[-1]
+        self._current_section = (
+            self._current_chapter.sections[-1]
+            if self._current_chapter.sections
+            else None
+        )
+
+        self.warnings.append(
+            "The leading course-title introduction was folded into "
+            f"Chapter 1 ('{following.title}') to avoid an empty standalone video"
+        )

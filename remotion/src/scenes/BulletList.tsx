@@ -28,8 +28,8 @@ export const BulletList: React.FC<SceneProps> = ({scene, theme, revealMap, frame
                 display: 'flex',
                 alignItems: 'center',
                 gap: 26,
-                backgroundColor: 'rgba(255,255,255,0.82)',
-                border: '2px solid rgba(17,17,17,0.10)',
+                backgroundColor: `${theme.foreground}12`,
+                border: `2px solid ${theme.foreground}24`,
                 borderRadius: 18,
                 padding: '22px 34px',
               }}

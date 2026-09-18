@@ -32,6 +32,7 @@ import {
   sceneFrames,
   secToFrames,
 } from './utils/timing';
+import {TeachingLayer} from './visual-actions/TeachingLayer';
 
 type TransitionType = 'fade' | 'slide' | 'wipe' | 'zoom';
 
@@ -75,6 +76,9 @@ const SceneView: React.FC<{
   const {width} = useVideoConfig();
 
   const conceptRects = layoutConceptChips(scene.keyConcepts, width, 830);
+  const conceptRectMap = new Map(
+    conceptRects.map((rect) => [rect.id, rect]),
+  );
 
   const revealMap = new Map<string, number>();
   for (const action of scene.visualActions) {
@@ -196,6 +200,15 @@ const SceneView: React.FC<{
       ) : null}
 
       {body}
+
+      <TeachingLayer
+        scene={scene}
+        frame={frame}
+        fps={fps}
+        theme={theme}
+        conceptRects={conceptRectMap}
+        diagramRects={new Map()}
+      />
 
       {scene.audio ? (
         audioStartFrame > 0 ? (
@@ -355,8 +368,8 @@ export const Tutorial: React.FC<{
   const data = manifest ?? EMPTY_MANIFEST;
   const preset = resolveStyle(data.style);
   const theme = mergeTheme({
-    ...preset.theme,
     ...(data.theme ?? {}),
+    ...preset.theme,
   });
 
   const fps = data.fps || 30;

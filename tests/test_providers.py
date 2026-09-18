@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pipeline.content.providers import classify_explanation
+from pipeline.content.providers import MockProvider, classify_explanation
 from pipeline.content.schemas import SceneType
 
 
@@ -41,3 +41,70 @@ def test_plain_explanation_classification():
     assert scene_type == SceneType.EXPLANATION
     assert strategy == "none"
     assert diagram is None
+
+
+def test_short_single_block_chapter_is_not_padded_with_duplicate_scenes():
+    scenes = MockProvider().build_scenes(
+        {
+            "chapterNumber": 1,
+            "title": "Web3",
+            "sections": [
+                {
+                    "title": "Web3",
+                    "blocks": [
+                        {
+                            "type": "paragraph",
+                            "text": "Web3 gives users direct ownership of digital assets.",
+                            "items": [],
+                            "warnings": [],
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+
+    assert [scene["type"] for scene in scenes] == [
+        "chapterIntro",
+        "explanation",
+    ]
+
+
+def test_web_evolution_list_becomes_an_arrow_diagram():
+    scenes = MockProvider().build_scenes(
+        {
+            "chapterNumber": 1,
+            "title": "The Evolution of the Web",
+            "sections": [
+                {
+                    "title": "The Evolution of the Web",
+                    "blocks": [
+                        {
+                            "type": "bullets",
+                            "text": "",
+                            "items": [
+                                "Web1 was the read-only era.",
+                                "Web2 introduced publishing and social platforms.",
+                                "Web3 adds direct digital ownership.",
+                            ],
+                            "warnings": [],
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+
+    visual = next(
+        scene
+        for scene in scenes
+        if scene["type"] == "visualExplanation"
+    )
+
+    assert visual["visualStrategy"] == "process-diagram"
+    assert [node["label"] for node in visual["diagram"]["nodes"]] == [
+        "WEB1",
+        "WEB2",
+        "WEB3",
+    ]
+    assert len(visual["diagram"]["edges"]) == 2

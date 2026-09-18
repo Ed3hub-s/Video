@@ -1958,7 +1958,7 @@ const DiagramCard: React.FC<{
         backgroundColor:
           isCenter
             ? theme.background
-            : 'rgba(255,255,255,0.92)',
+            : `${theme.foreground}12`,
 
         boxShadow:
           isCenter

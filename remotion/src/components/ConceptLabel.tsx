@@ -13,8 +13,8 @@ export const ConceptLabel: React.FC<{
 }> = ({concept, rect, theme, revealProgress = 1, handwriting = false}) => {
   const high = concept.importance === 'high';
   const medium = concept.importance === 'medium';
-  const borderColor = high ? theme.accent : medium ? theme.muted : 'rgba(17,17,17,0.18)';
-  const background = high ? 'rgba(255,90,54,0.10)' : 'rgba(255,255,255,0.75)';
+  const borderColor = high ? theme.accent : medium ? theme.muted : `${theme.foreground}2E`;
+  const background = high ? `${theme.accent}1A` : `${theme.foreground}12`;
   const fontFamily = handwriting
     ? "'Segoe Script', 'Comic Sans MS', cursive"
     : theme.fontFamily;

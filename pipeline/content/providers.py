@@ -122,10 +122,13 @@ class MockProvider(AIProvider):
             )
         )
 
-        substantive_count = (
+        substantive_count = max(
             _count_substantive_paragraphs(
                 chapter
-            )
+            ),
+            _count_content_units(
+                chapter
+            ),
         )
 
         visual_budget = (
@@ -152,24 +155,32 @@ class MockProvider(AIProvider):
                 [],
             )
 
-            scenes.append(
-                Scene(
-                    id=(
-                        f"scene-"
-                        f"{len(scenes) + 1:03d}"
-                    ),
-                    type=SceneType.SECTION_INTRO,
-                    title=section["title"],
-                    screenText=section["title"],
-                    voiceover=_section_intro_voiceover(
-                        section["title"],
-                        section_index,
-                    ),
-                    keyConcepts=[],
-                ).model_dump(
-                    mode="json"
+            section_title = section.get("title", "").strip()
+            chapter_title = chapter.get("title", "").strip()
+
+            if (
+                section_title
+                and _normalized_heading(section_title)
+                != _normalized_heading(chapter_title)
+            ):
+                scenes.append(
+                    Scene(
+                        id=(
+                            f"scene-"
+                            f"{len(scenes) + 1:03d}"
+                        ),
+                        type=SceneType.SECTION_INTRO,
+                        title=section_title,
+                        screenText=section_title,
+                        voiceover=_section_intro_voiceover(
+                            section_title,
+                            section_index,
+                        ),
+                        keyConcepts=[],
+                    ).model_dump(
+                        mode="json"
+                    )
                 )
-            )
 
             for block_index, block in enumerate(
                 section_blocks
@@ -213,43 +224,44 @@ class MockProvider(AIProvider):
                 )
             )
 
-        scenes.append(
-            Scene(
-                id=f"scene-{len(scenes) + 1:03d}",
-                type=SceneType.CHAPTER_SUMMARY,
-                title="Key Takeaways",
-                screenText=(
-                    " · ".join(
-                        screen_parts
-                    )
-                ),
-                voiceover=(
-                    "To recap: "
-                    + " ".join(
-                        summary[:4]
-                    )
-                ),
-                keyConcepts=[
-                    KeyConcept(
-                        id=(
-                            f"takeaway-{i}"
-                        ),
-                        text=_concept_text(
-                            item
-                        ),
-                        importance=(
-                            Importance.MEDIUM
-                        ),
-                    )
-                    for i, item
-                    in enumerate(
-                        summary[:3]
-                    )
-                ],
-            ).model_dump(
-                mode="json"
+        if _count_content_units(chapter) >= 2:
+            scenes.append(
+                Scene(
+                    id=f"scene-{len(scenes) + 1:03d}",
+                    type=SceneType.CHAPTER_SUMMARY,
+                    title="Key Takeaways",
+                    screenText=(
+                        " · ".join(
+                            screen_parts
+                        )
+                    ),
+                    voiceover=(
+                        "To recap: "
+                        + " ".join(
+                            summary[:4]
+                        )
+                    ),
+                    keyConcepts=[
+                        KeyConcept(
+                            id=(
+                                f"takeaway-{i}"
+                            ),
+                            text=_concept_text(
+                                item
+                            ),
+                            importance=(
+                                Importance.MEDIUM
+                            ),
+                        )
+                        for i, item
+                        in enumerate(
+                            summary[:3]
+                        )
+                    ],
+                ).model_dump(
+                    mode="json"
+                )
             )
-        )
 
         return scenes
 
@@ -338,6 +350,53 @@ class MockProvider(AIProvider):
                 for i, item
                 in enumerate(items)
             ]
+
+            if allow_visual and len(items) >= 3:
+                diagram = _diagram_for_list(
+                    section_title,
+                    items,
+                    numbered=(block_type == "numbered"),
+                )
+
+                if diagram is not None:
+                    return [
+                        Scene(
+                            id=(
+                                f"scene-"
+                                f"{scene_number:03d}"
+                            ),
+                            type=(
+                                SceneType
+                                .VISUAL_EXPLANATION
+                            ),
+                            title=(
+                                section_title
+                                or "Key Points"
+                            ),
+                            screenText=(
+                                " · ".join(
+                                    node.label
+                                    for node
+                                    in diagram.nodes
+                                )
+                            ),
+                            voiceover=(
+                                "Here are the key points. "
+                                + " ".join(items)
+                            ),
+                            keyConcepts=concepts,
+                            visualStrategy=(
+                                f"{diagram.kind}-diagram"
+                            ),
+                            visualActions=[],
+                            diagram=diagram,
+                            sourceText=(
+                                "\n".join(items)
+                            ),
+                        ).model_dump(
+                            mode="json"
+                        )
+                    ]
 
             return [
                 Scene(
@@ -732,6 +791,35 @@ def chapter_source_text_from_dict(
     )
 
 
+def _normalized_heading(value: str) -> str:
+    return "".join(
+        character.lower()
+        for character in value
+        if character.isalnum()
+    )
+
+
+def _count_content_units(
+    chapter: dict[str, Any],
+) -> int:
+    units = 0
+
+    for section in chapter.get("sections", []):
+        for block in section.get("blocks", []):
+            if block.get("text", "").strip():
+                units += 1
+
+            units += len(
+                [
+                    item
+                    for item in block.get("items", [])
+                    if str(item).strip()
+                ]
+            )
+
+    return units
+
+
 def _clean_narration_text(text: str) -> str:
     """Normalize spacing and terminal punctuation for speech."""
 
@@ -1049,23 +1137,35 @@ def _select_visual_blocks(
                 [],
             )
         ):
-            if (
-                block.get("type")
-                != "paragraph"
+            block_type = block.get("type")
+
+            if block_type == "paragraph":
+                text = block.get(
+                    "text",
+                    "",
+                ).strip()
+
+                if not text:
+                    continue
+
+                score = _visual_score(
+                    text
+                )
+
+            elif block_type in (
+                "bullets",
+                "numbered",
             ):
+                score = _list_visual_score(
+                    section.get("title", ""),
+                    block.get("items", []),
+                    numbered=(
+                        block_type == "numbered"
+                    ),
+                )
+
+            else:
                 continue
-
-            text = block.get(
-                "text",
-                "",
-            ).strip()
-
-            if not text:
-                continue
-
-            score = _visual_score(
-                text
-            )
 
             if score >= 4:
                 candidates.append(
@@ -1141,6 +1241,55 @@ def _select_visual_blocks(
                 )
 
     return selected
+
+
+def _list_visual_score(
+    section_title: str,
+    items: list[str],
+    *,
+    numbered: bool,
+) -> int:
+    if len(items) < 3:
+        return 0
+
+    lowered_title = section_title.lower()
+
+    if numbered:
+        return 10
+
+    if all(
+        re.search(r"\bweb\s*\d+\b", item, re.IGNORECASE)
+        for item in items[:3]
+    ):
+        return 10
+
+    if any(
+        marker in lowered_title
+        for marker in (
+            "evolution",
+            "history",
+            "process",
+            "steps",
+            "workflow",
+            "lifecycle",
+            "journey",
+        )
+    ):
+        return 9
+
+    labelled_items = sum(
+        1
+        for item in items
+        if re.match(r"^[^:]{1,32}:", item.strip())
+    )
+
+    if labelled_items >= 3:
+        return 8
+
+    if len(items) <= 5:
+        return 5
+
+    return 0
 
 
 def _visual_score(
@@ -2939,6 +3088,102 @@ def _hub_diagram(
             for node
             in nodes[1:]
         ],
+    )
+
+
+def _list_item_label(item: str) -> str:
+    cleaned = _clean_narration_text(item).strip('"')
+
+    web_generation = re.search(
+        r"\b(web\s*\d+)\b",
+        cleaned,
+        re.IGNORECASE,
+    )
+
+    if web_generation:
+        return re.sub(
+            r"\s+",
+            "",
+            web_generation.group(1),
+        ).upper()
+
+    if ":" in cleaned:
+        prefix = cleaned.split(":", 1)[0]
+
+        if 1 <= len(prefix.split()) <= 4:
+            return prefix.upper()[:28]
+
+    cleaned = re.sub(
+        r"^(?:then|next|finally|but wait)\b[,! ]*",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+
+    return _concept_text(cleaned) or "POINT"
+
+
+def _diagram_for_list(
+    section_title: str,
+    items: list[str],
+    *,
+    numbered: bool,
+) -> Diagram | None:
+    labels: list[str] = []
+
+    for item in items[:5]:
+        label = _list_item_label(item)
+
+        if label not in labels:
+            labels.append(label)
+
+    if len(labels) < 3:
+        return None
+
+    nodes = [
+        DiagramNode(
+            id=f"node-{index + 1}",
+            label=label,
+        )
+        for index, label in enumerate(labels)
+    ]
+
+    lowered_title = section_title.lower()
+    is_sequence = (
+        numbered
+        or all(
+            re.fullmatch(r"WEB\d+", label)
+            for label in labels[:3]
+        )
+        or any(
+            marker in lowered_title
+            for marker in (
+                "evolution",
+                "history",
+                "process",
+                "steps",
+                "workflow",
+                "lifecycle",
+                "journey",
+            )
+        )
+    )
+
+    if is_sequence:
+        return _chain_diagram(
+            "process",
+            nodes,
+        )
+
+    center = (
+        _concept_text(section_title)
+        if section_title.strip()
+        else "KEY POINTS"
+    )
+
+    return _hub_diagram(
+        center,
+        labels,
     )
 
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import {interpolate} from 'remotion';
 
+import {ConceptStrip} from '../components/ConceptStrip';
 import {fitFontSize} from '../utils/layout';
 import type {SceneProps} from './common';
 
@@ -8,6 +9,9 @@ export const Explanation: React.FC<SceneProps> = ({
   scene,
   theme,
   frame,
+  conceptRects,
+  revealMap,
+  handwrittenIds,
 }) => {
   const fontSize = Math.min(
     fitFontSize(
@@ -73,6 +77,15 @@ export const Explanation: React.FC<SceneProps> = ({
           {scene.screenText}
         </div>
       </div>
+      {conceptRects.length > 0 ? (
+        <ConceptStrip
+          concepts={scene.keyConcepts}
+          rects={conceptRects}
+          theme={theme}
+          revealMap={revealMap}
+          handwrittenIds={handwrittenIds}
+        />
+      ) : null}
     </div>
   );
 };

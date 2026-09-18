@@ -43,13 +43,39 @@ class TTSProvider:
         raise NotImplementedError
 
 
-def _encode_to_mp3(wav_path: Path, final_path: Path) -> Path:
+def _encode_to_mp3(
+    wav_path: Path,
+    final_path: Path,
+    *,
+    clean_neural_voice: bool = False,
+) -> Path:
     """Encode WAV to MP3 with ffmpeg when available; keep WAV otherwise."""
 
     ffmpeg = shutil.which("ffmpeg")
 
     if ffmpeg is None:
         return wav_path
+
+    audio_filters = []
+
+    if clean_neural_voice:
+        audio_filters.extend(
+            [
+                "silenceremove="
+                "start_periods=1:"
+                "start_duration=0.06:"
+                "start_threshold=-50dB:"
+                "start_silence=0.02",
+                "highpass=f=70:p=2",
+                "lowpass=f=9000:p=2",
+                "afade=t=in:st=0:d=0.10",
+                "adelay=120:all=1",
+            ]
+        )
+
+    audio_filters.append(
+        "loudnorm=I=-16:TP=-1.5:LRA=11"
+    )
 
     try:
         subprocess.run(
@@ -59,7 +85,7 @@ def _encode_to_mp3(wav_path: Path, final_path: Path) -> Path:
                 "-i",
                 str(wav_path),
                 "-af",
-                "loudnorm=I=-16:TP=-1.5:LRA=11",
+                ",".join(audio_filters),
                 "-codec:a",
                 "libmp3lame",
                 "-q:a",
@@ -766,7 +792,7 @@ class KokoroTTS(TTSProvider):
         # accidentally reusing incompatible
         # cached audio.
         self.cache_tag = (
-            f"kokoro:v1:"
+            f"kokoro:v2:"
             f"{self.voice}:"
             f"{self.speed:.2f}"
         )
@@ -926,6 +952,7 @@ class KokoroTTS(TTSProvider):
         final_path = _encode_to_mp3(
             wav_path,
             out_path,
+            clean_neural_voice=True,
         )
 
         return _finish_audio(

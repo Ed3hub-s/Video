@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from pipeline.content.schemas import SourceBlockType
+from pipeline.content.schemas import SourceBlock, SourceBlockType
+from pipeline.docx_parser.chapter_parser import ChapterParser
 
 
 def test_heading1_creates_three_chapters(sample_course):
@@ -71,3 +72,29 @@ def test_image_extracted(sample_course):
 
 def test_table_warning_generated(sample_course):
     assert any("Table" in w for w in sample_course.warnings)
+
+
+def test_short_leading_course_title_is_folded_into_first_real_chapter():
+    parser = ChapterParser(course_title="Web3_chapter_1")
+    parser.add_heading1("Web3_chapter_1")
+    parser.add_block(
+        SourceBlock(
+            type=SourceBlockType.PARAGRAPH,
+            text="Welcome to Web3. We will introduce the topic before the lesson begins.",
+        )
+    )
+    parser.add_heading1("The Evolution of the Web")
+    parser.add_block(
+        SourceBlock(
+            type=SourceBlockType.PARAGRAPH,
+            text=" ".join(["substantive"] * 100),
+        )
+    )
+
+    course = parser.finish()
+
+    assert len(course.chapters) == 1
+    assert course.chapters[0].chapter_number == 1
+    assert course.chapters[0].title == "The Evolution of the Web"
+    assert course.chapters[0].sections[0].blocks[0].text.startswith("Welcome")
+    assert any("folded into Chapter 1" in warning for warning in course.warnings)

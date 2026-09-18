@@ -204,8 +204,10 @@ def scenes_cache_key(
     chapter: Chapter,
     provider_name: str,
 ) -> str:
+    # Increment when deterministic scene-planning behavior changes so an old
+    # plan cannot silently survive a renderer or visual-director improvement.
     return (
-        f"scenes:"
+        f"scenes:v2:"
         f"{provider_name}:"
         f"{hash_json(chapter.model_dump(mode='json'))}"
     )
@@ -727,6 +729,13 @@ def run_pipeline(
 
     logger.progress(
         "[2/9] Extracting chapters"
+    )
+
+    logger.progress(
+        "  Render settings: "
+        f"style={config.style}, "
+        f"voice={config.tts_voice}, "
+        f"provider={config.tts_provider}"
     )
 
     for chapter in chapters:

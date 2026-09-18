@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+from pathlib import Path
 
 from fastapi import UploadFile
 
@@ -38,3 +39,42 @@ def test_reupload_replaces_same_original_filename(monkeypatch, tmp_path):
 
     assert result["name"] == "course.docx"
     assert (upload_dir / "course.docx").read_bytes() == b"second"
+
+
+def test_job_passes_selected_style_to_pipeline(monkeypatch):
+    captured = {}
+
+    monkeypatch.setattr(webapp, "_active_job", lambda: None)
+    monkeypatch.setattr(
+        webapp,
+        "_resolve_input_document",
+        lambda value: Path(value),
+    )
+    monkeypatch.setattr(
+        webapp,
+        "_pipeline_env",
+        lambda: {},
+    )
+
+    def capture_job(job_id, command, environment):
+        captured["job_id"] = job_id
+        captured["command"] = command
+        captured["environment"] = environment
+
+    monkeypatch.setattr(webapp, "_run_job", capture_job)
+
+    with webapp.JOBS_LOCK:
+        webapp.JOBS.clear()
+
+    result = webapp.api_start_job(
+        webapp.JobRequest(
+            document="input/uploads/course.docx",
+            provider="mock",
+            voice="mock",
+            style="dark",
+        )
+    )
+
+    style_index = captured["command"].index("--style")
+    assert captured["command"][style_index + 1] == "dark"
+    assert result["style"] == "dark"

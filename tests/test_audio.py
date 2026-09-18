@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pipeline.audio.subtitles import build_subtitles, build_subtitles_from_words
 from pipeline.audio.timestamps import sentence_timestamps, word_timestamps
-from pipeline.audio.tts import MockTTS, SapiTTS
+from pipeline.audio.tts import KokoroTTS, MockTTS, SapiTTS, _encode_to_mp3
 
 
 def test_word_timestamps_cover_duration():
@@ -42,6 +42,41 @@ def test_mock_tts_produces_audio(tmp_path):
     metadata = tts.generate("Machine learning learns patterns from data.", tmp_path / "scene-001.mp3")
     assert metadata.durationSeconds > 1.0
     assert metadata.path.endswith((".mp3", ".wav"))
+
+
+def test_kokoro_cache_tag_invalidates_unclean_audio():
+    tts = KokoroTTS(voice="af_heart")
+    assert tts.cache_tag.startswith("kokoro:v2:")
+
+
+def test_neural_voice_encoding_enables_cleanup_filters(monkeypatch, tmp_path):
+    wav_path = tmp_path / "voice.wav"
+    output_path = tmp_path / "voice.mp3"
+    wav_path.write_bytes(b"wav")
+    captured = {}
+
+    class Result:
+        returncode = 0
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        output_path.write_bytes(b"mp3")
+        return Result()
+
+    monkeypatch.setattr("pipeline.audio.tts.shutil.which", lambda name: "ffmpeg")
+    monkeypatch.setattr("pipeline.audio.tts.subprocess.run", fake_run)
+
+    result = _encode_to_mp3(
+        wav_path,
+        output_path,
+        clean_neural_voice=True,
+    )
+
+    filters = captured["command"][captured["command"].index("-af") + 1]
+    assert "silenceremove=" in filters
+    assert "lowpass=f=9000:p=2" in filters
+    assert "afade=t=in" in filters
+    assert result == output_path
 
 
 def test_sapi_tts_produces_speech(tmp_path):
